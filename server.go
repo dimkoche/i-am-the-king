@@ -8,16 +8,10 @@ import "bufio"
 import "time"
 
 type Server struct {
-	//id   string
-	//clients                  []*Client
-	//address                  string
 	priority string
 	state    string
 	king     string
 	joins    chan net.Conn
-	// onNewClientCallback      func(c *Client)
-	// onClientConnectionClosed func(c *Client, err error)
-	// onNewMessage             func(c *Client, message string)
 }
 
 type Message struct {
@@ -93,35 +87,41 @@ func (s *Server) handleRequest(conn net.Conn) {
 	defer conn.Close()
 
 	msg, ok  := s.parseProtocol(message)
-	if ok {
-		switch { 
-		case msg.msg == "ALIVE?\n":
-			go s.handleAliveMsg(msg)
-		case msg.msg == "IMTHEKING\n":
-			//go s.handleKingMsg(msg)
-			s.setState("worker")
-			s.king = msg.priority
-			fmt.Println("Set king to ", msg.priority)
-		case msg.msg == "FINETHANKS\n":
-			if s.state == "election" {
-				s.setState("waiting-for-king")
-				go func() {
-					finish := time.After(time.Duration(2*T))
-					for {
-						select {
-						case <-finish:
-							fmt.Println("Waiting for king timeout")
-							if s.state == "waiting-for-king" {
-								//go s.startElections()
-								fmt.Println("Election should be started")
-							}
+	if !ok {
+		return
+	}
+
+	switch {
+	case msg.msg == "ALIVE?\n":
+		go s.handleAliveMsg(msg)
+	case msg.msg == "IMTHEKING\n":
+		//go s.handleKingMsg(msg)
+		s.setState("worker")
+		s.king = msg.priority
+		fmt.Println("Set king to ", msg.priority)
+	case msg.msg == "PONG":
+		if s.state == "worker" && s.king == msg.priority {
+			//go s.ping()
+		}
+	case msg.msg == "FINETHANKS\n":
+		if s.state == "election" {
+			s.setState("waiting-for-king")
+			go func() {
+				finish := time.After(time.Duration(2*T))
+				for {
+					select {
+					case <-finish:
+						fmt.Println("Waiting for king timeout")
+						if s.state == "waiting-for-king" {
+							//go s.startElections()
+							fmt.Println("Election should be started")
 						}
 					}
-				}()
-			}
-		default:
-			return
-		} 
+				}
+			}()
+		}
+	default:
+		return
 	}
 }
 
