@@ -12,6 +12,7 @@ type Server struct {
 	state    string
 	king     string
 	joins    chan net.Conn
+	pong     bool
 }
 
 type Message struct {
@@ -38,7 +39,42 @@ func (s *Server) Start() {
 		}
 	}()
 
+	go func() {
+		c := time.Tick(2*T)
+		for _ = range c {
+			if s.state == "worker" {
+				go s.pingKing()
+			}
+		}
+	}()
+
 	s.startElections()
+}
+
+func (s *Server) pingKing() {
+	fmt.Println("pingKing")
+	if s.king == "" || s.state == "king" {
+		return
+	}
+
+	if s.pong {
+		s.sendMessage("PING", PRIORITY_MAP[s.king])
+		s.pong = false
+	} else {
+		go s.startElections()
+	}
+
+	// finish := time.After(time.Duration(4*T))
+	// for {
+	// 	select {
+	// 	case <-finish:
+	// 		fmt.Println("Waiting for king timeout")
+	// 		if s.state == "waiting-for-king" {
+	// 			//go s.startElections()
+	// 			fmt.Println("Election should be started")
+	// 		}
+	// 	}
+	// }
 }
 
 func (s *Server) startElections() {
@@ -98,10 +134,15 @@ func (s *Server) handleRequest(conn net.Conn) {
 		//go s.handleKingMsg(msg)
 		s.setState("worker")
 		s.king = msg.priority
+		s.pong = true
 		fmt.Println("Set king to ", msg.priority)
-	case msg.msg == "PONG":
+	case msg.msg == "PING\n":
+		if s.state == "king" {
+			go s.sendMessage("PONG", msg.Server())
+		}
+	case msg.msg == "PONG\n":
 		if s.state == "worker" && s.king == msg.priority {
-			//go s.ping()
+			s.pong = true
 		}
 	case msg.msg == "FINETHANKS\n":
 		if s.state == "election" {
