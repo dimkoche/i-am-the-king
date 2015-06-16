@@ -5,7 +5,6 @@ import "fmt"
 import "bufio"
 import "os"
 import "time"
-// import "log"
 
 var T time.Duration
 var PRIORITY_MAP map[string]string
@@ -25,16 +24,8 @@ func main() {
 	}
 	server.Start()
 
-	// go func() {
-	// 	for {
-	// 		log.Printf("Send ping")
-	// 		time.Sleep(T)
-	// 	}
-	// }()
-
 	for {
 		reader := bufio.NewReader(os.Stdin)
-		//fmt.Print("CMD: ")
 		text, _ := reader.ReadString('\n')
 		fmt.Printf("CMD: %s", text)
 	}

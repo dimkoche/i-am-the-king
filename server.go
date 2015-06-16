@@ -63,18 +63,6 @@ func (s *Server) pingKing() {
 	} else {
 		go s.startElections()
 	}
-
-	// finish := time.After(time.Duration(4*T))
-	// for {
-	// 	select {
-	// 	case <-finish:
-	// 		fmt.Println("Waiting for king timeout")
-	// 		if s.state == "waiting-for-king" {
-	// 			//go s.startElections()
-	// 			fmt.Println("Election should be started")
-	// 		}
-	// 	}
-	// }
 }
 
 func (s *Server) startElections() {
